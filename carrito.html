@@ -9,6 +9,12 @@ body { font-family: Arial, sans-serif; margin: 40px; display: flex; justify-cont
 table { border-collapse: collapse; width: 60%; }
 th, td { border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: middle; }
 th { background-color: #f4f4f4; }
+/* Ajuste para que el nombre del ticket quede en una sola línea */
+table th:first-child,
+table td:first-child {
+  white-space: nowrap;
+  min-width: 150px;
+}
 input[type="number"] { width: 60px; }
 .totals { margin-top: 20px; font-size: 1.1em; }
 .form-container { width: 35%; padding-left: 20px; border-left: 2px solid #eee; }
