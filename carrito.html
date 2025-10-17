@@ -127,7 +127,31 @@
       label.textContent = campo.campo + ':';
       let input;
 
-      if(campo.tipo === 'select') {
+      if(campo.campo === 'documento') {
+        // Tipo de documento
+        const select = document.createElement('select');
+        select.name = 'tipo_documento';
+        campo.opciones.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          select.appendChild(option);
+        });
+        if(campo.requerido) select.required = true;
+        formContainer.appendChild(label);
+        formContainer.appendChild(select);
+
+        // Número de documento
+        const labelNum = document.createElement('label');
+        labelNum.textContent = 'Número de Documento:';
+        const inputNum = document.createElement('input');
+        inputNum.name = 'num_documento';
+        inputNum.type = 'text'; // permitimos alfanumérico
+        if(campo.requerido) inputNum.required = true;
+        formContainer.appendChild(labelNum);
+        formContainer.appendChild(inputNum);
+
+      } else if(campo.tipo === 'select') {
         input = document.createElement('select');
         input.name = campo.campo;
         campo.opciones.forEach(opt => {
@@ -136,15 +160,18 @@
           option.textContent = opt;
           input.appendChild(option);
         });
+        if(campo.requerido) input.required = true;
+        formContainer.appendChild(label);
+        formContainer.appendChild(input);
+
       } else {
         input = document.createElement('input');
         input.type = campo.tipo === 'texto' ? 'text' : campo.tipo;
         input.name = campo.campo;
+        if(campo.requerido) input.required = true;
+        formContainer.appendChild(label);
+        formContainer.appendChild(input);
       }
-
-      if(campo.requerido) input.required = true;
-      formContainer.appendChild(label);
-      formContainer.appendChild(input);
     });
 
     // Checkbox de aceptación de términos
@@ -164,13 +191,22 @@
     // Validar campos requeridos según JSON
     let faltan = [];
     formulario.forEach(campo => {
+      if(campo.campo === 'documento') return; // se valida más abajo
       const input = form.querySelector(`[name="${campo.campo}"]`);
-      if(campo.requerido) {
-        if(!input.value || (input.type === 'number' && isNaN(input.value))) {
-          faltan.push(campo.campo);
-        }
+      if(campo.requerido && (!input.value || (input.type === 'number' && isNaN(input.value)))) {
+        faltan.push(campo.campo);
       }
     });
+
+    // Validar documento
+    const tipoDoc = form.querySelector('[name="tipo_documento"]');
+    const numDoc = form.querySelector('[name="num_documento"]');
+    if(!tipoDoc.value) faltan.push('Tipo de Documento');
+    if(!numDoc.value) faltan.push('Número de Documento');
+    if(tipoDoc.value !== 'Pasaporte' && numDoc.value && !/^\d+$/.test(numDoc.value)) {
+      alert('Número de Documento debe ser solo numérico para Cédula o RUC.');
+      return;
+    }
 
     if(faltan.length > 0) {
       alert('Faltan campos requeridos: ' + faltan.join(', '));
@@ -186,8 +222,13 @@
     // Crear objeto comprador con todos los datos
     const comprador = {};
     formulario.forEach(campo => {
-      const input = form.querySelector(`[name="${campo.campo}"]`);
-      comprador[campo.campo] = input.value;
+      if(campo.campo === 'documento') {
+        comprador['tipo_documento'] = tipoDoc.value;
+        comprador['num_documento'] = numDoc.value;
+      } else {
+        const input = form.querySelector(`[name="${campo.campo}"]`);
+        comprador[campo.campo] = input.value;
+      }
     });
 
     // Generar ordenes
