@@ -116,19 +116,20 @@ function abrirMapaAsientos(entrada, inputCantidad) {
   }
   const categoria = encodeURIComponent(entrada.categoria_asiento);
   const url = `${entrada.url_seats}?categoria=${categoria}`;
-  window.open(url, "MapaAsientos", "width=900,height=600");
+  const mapaVentana = window.open(url, "MapaAsientos", "width=900,height=600");
 
-  setTimeout(() => {
-    const confirmar = confirm(`Simular selección de ${cantidad} asientos para ${entrada.nombre}?`);
-    if (confirmar) {
+  const intervalId = setInterval(() => {
+    if (mapaVentana.closed) {
+      clearInterval(intervalId);
+      // Simulación automática de asientos
       const seleccion = [];
       for (let i = 1; i <= cantidad; i++) {
-        seleccion.push(`${entrada.categoria_asiento}-${i}`);
+        seleccion.push(`${entrada.categoria_asiento}-Asiento ${i}`);
       }
       asientosSeleccionados[entrada.nombre] = seleccion;
-      alert(`Asientos seleccionados: ${seleccion.join(", ")}`);
+      alert(`Asientos seleccionados automáticamente: ${seleccion.join(", ")}`);
     }
-  }, 1000);
+  }, 500);
 }
 
 function crearFormulario() {
