@@ -6,8 +6,9 @@
 <title>Carrito de Entradas</title>
 <style>
 body { font-family: Arial, sans-serif; margin: 40px; display: flex; justify-content: space-between; }
-table { border-collapse: collapse; width: 60%; }
+table { border-collapse: collapse; width: 60%; table-layout: auto; }
 th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+th:first-child, td:first-child { white-space: nowrap; width: 1%; } /* Ajuste automático de columna nombre ticket */
 th { background-color: #f4f4f4; }
 input[type="number"] { width: 60px; }
 .totals { margin-top: 20px; font-size: 1.1em; }
@@ -46,9 +47,7 @@ button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
 
 <div class="form-container">
 <h3>Datos del Comprador</h3>
-<form id="buyer-form">
-<!-- Campos se generarán dinámicamente -->
-</form>
+<form id="buyer-form"></form>
 </div>
 
 <script>
@@ -182,8 +181,6 @@ formContainer.appendChild(termLabel);
 
 function comprar() {
 const form = document.getElementById('buyer-form');
-
-// Validar campos requeridos excepto documento
 let faltan = [];
 formulario.forEach(campo => {
   if(campo.campo === 'documento') return;
@@ -206,7 +203,6 @@ if(faltan.length > 0) {
   return;
 }
 
-// Validar aceptación de términos
 if(!document.getElementById('aceptar').checked) {
   alert('Debes aceptar los términos y condiciones.');
   return;
