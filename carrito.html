@@ -8,7 +8,7 @@
 body { font-family: Arial, sans-serif; margin: 40px; display: flex; justify-content: space-between; }
 table { border-collapse: collapse; width: 60%; table-layout: auto; }
 th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-th:first-child, td:first-child { white-space: nowrap; width: 1%; } /* Ajuste automático de columna nombre ticket */
+th:first-child, td:first-child { white-space: nowrap; width: 1%; }
 th { background-color: #f4f4f4; }
 input[type="number"] { width: 60px; }
 .totals { margin-top: 20px; font-size: 1.1em; }
@@ -18,6 +18,7 @@ input[type="number"] { width: 60px; }
 .buttons { margin-top: 20px; }
 button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
 .totals span { display: inline-block; width: 150px; }
+.seats-btn { margin-left: 10px; }
 </style>
 </head>
 <body>
@@ -29,6 +30,7 @@ button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
 <th>Tipo de Entrada</th>
 <th>Precio</th>
 <th>Cantidad</th>
+<th>Asientos</th>
 </tr>
 </thead>
 <tbody id="ticket-table"></tbody>
@@ -53,20 +55,17 @@ button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
 <script>
 let entradas = [];
 let formulario = [];
+let asientosSeleccionados = {}; // Guarda por índice de entrada la lista de asientos
 
-// Cargar datos desde JSON externo
 fetch('api_datos.json')
-.then(response => response.json())
+.then(resp => resp.json())
 .then(data => {
 entradas = data.localidades;
 formulario = data.formulario;
 mostrarEntradas();
 generarFormulario();
 })
-.catch(error => {
-console.error('Error cargando datos de la API:', error);
-alert('Error cargando datos de la API. Asegúrate de abrir desde un servidor o Live Server.');
-});
+.catch(err => { console.error(err); alert('Error cargando datos de la API.'); });
 
 const tabla = document.getElementById('ticket-table');
 const formContainer = document.getElementById('buyer-form');
@@ -75,181 +74,155 @@ function mostrarEntradas() {
 tabla.innerHTML = '';
 entradas.forEach((entrada, index) => {
 const fila = document.createElement('tr');
+
 const tdNombre = document.createElement('td');
 tdNombre.textContent = entrada.nombre;
+
 const tdPrecio = document.createElement('td');
 tdPrecio.textContent = `$${entrada.precio.toFixed(2)}`;
+
 const tdCantidad = document.createElement('td');
 const inputCantidad = document.createElement('input');
 inputCantidad.type = 'number';
 inputCantidad.min = 0;
-inputCantidad.max = entrada.disponibilidad === "Disponible" ? 1000 : 0;
+inputCantidad.max = entrada.disponibilidad==="Disponible"?1000:0;
 inputCantidad.value = 0;
 inputCantidad.dataset.precio = entrada.precio;
 inputCantidad.dataset.index = index;
 inputCantidad.addEventListener('input', calcularTotales);
 tdCantidad.appendChild(inputCantidad);
+
+const tdSeats = document.createElement('td');
+if(entrada.seats){
+const btn = document.createElement('button');
+btn.textContent = 'Seleccionar Asientos';
+btn.type = 'button';
+btn.className = 'seats-btn';
+btn.onclick = () => seleccionarAsientos(index);
+tdSeats.appendChild(btn);
+} else {
+tdSeats.textContent = '-';
+}
+
 fila.appendChild(tdNombre);
 fila.appendChild(tdPrecio);
 fila.appendChild(tdCantidad);
+fila.appendChild(tdSeats);
 tabla.appendChild(fila);
 });
 }
 
 function calcularTotales() {
-let totalCantidad = 0;
-let totalPrecio = 0;
-document.querySelectorAll('#ticket-table input[type="number"]').forEach(input => {
-const cantidad = parseInt(input.value) || 0;
-const precio = parseFloat(input.dataset.precio);
-totalCantidad += cantidad;
-totalPrecio += cantidad * precio;
+let totalCantidad=0, totalPrecio=0;
+document.querySelectorAll('#ticket-table input[type="number"]').forEach(input=>{
+let cantidad=parseInt(input.value)||0;
+let precio=parseFloat(input.dataset.precio);
+totalCantidad+=cantidad;
+totalPrecio+=cantidad*precio;
 });
-document.getElementById('total-cant').textContent = totalCantidad;
-document.getElementById('total-precio').textContent = `$${totalPrecio.toFixed(2)}`;
+document.getElementById('total-cant').textContent=totalCantidad;
+document.getElementById('total-precio').textContent=`$${totalPrecio.toFixed(2)}`;
 }
 
-function resetForm() {
-document.querySelectorAll('#ticket-table input[type="number"]').forEach(input => input.value = 0);
+function resetForm(){
+document.querySelectorAll('#ticket-table input[type="number"]').forEach(i=>i.value=0);
 calcularTotales();
 formContainer.reset();
+asientosSeleccionados={};
 }
 
-function generarFormulario() {
-formContainer.innerHTML = '';
-formulario.forEach(campo => {
-if(campo.campo === 'documento') {
-  // Tipo de documento
-  const labelTipo = document.createElement('label');
-  labelTipo.textContent = 'Tipo de Documento:';
-  const selectTipo = document.createElement('select');
-  selectTipo.name = 'tipo_documento';
-  campo.opciones.forEach(opt => {
-    const option = document.createElement('option');
-    option.value = opt;
-    option.textContent = opt;
-    selectTipo.appendChild(option);
-  });
-  if(campo.requerido) selectTipo.required = true;
-  formContainer.appendChild(labelTipo);
-  formContainer.appendChild(selectTipo);
-
-  // Número de documento
-  const labelNum = document.createElement('label');
-  labelNum.textContent = 'Número de Documento:';
-  const inputNum = document.createElement('input');
-  inputNum.name = 'num_documento';
-  inputNum.type = 'text';
-  if(campo.requerido) inputNum.required = true;
-  formContainer.appendChild(labelNum);
-  formContainer.appendChild(inputNum);
-
+function generarFormulario(){
+formContainer.innerHTML='';
+formulario.forEach(campo=>{
+if(campo.campo==='documento'){
+const labelTipo = document.createElement('label'); labelTipo.textContent='Tipo de Documento:';
+const selectTipo = document.createElement('select'); selectTipo.name='tipo_documento';
+campo.opciones.forEach(opt=>{ const option = document.createElement('option'); option.value=opt; option.textContent=opt; selectTipo.appendChild(option);});
+if(campo.requerido) selectTipo.required=true;
+formContainer.appendChild(labelTipo); formContainer.appendChild(selectTipo);
+const labelNum=document.createElement('label'); labelNum.textContent='Número de Documento:';
+const inputNum=document.createElement('input'); inputNum.name='num_documento'; inputNum.type='text';
+if(campo.requerido) inputNum.required=true;
+formContainer.appendChild(labelNum); formContainer.appendChild(inputNum);
 } else {
-  const label = document.createElement('label');
-  label.textContent = campo.campo + ':';
-  let input;
-  if(campo.tipo === 'select') {
-    input = document.createElement('select');
-    input.name = campo.campo;
-    campo.opciones.forEach(opt => {
-      const option = document.createElement('option');
-      option.value = opt;
-      option.textContent = opt;
-      input.appendChild(option);
-    });
-  } else {
-    input = document.createElement('input');
-    input.type = campo.tipo === 'texto' ? 'text' : campo.tipo;
-    input.name = campo.campo;
-  }
-  if(campo.requerido) input.required = true;
-  formContainer.appendChild(label);
-  formContainer.appendChild(input);
+const label=document.createElement('label'); label.textContent=campo.campo+':';
+let input;
+if(campo.tipo==='select'){
+input=document.createElement('select'); input.name=campo.campo;
+campo.opciones.forEach(opt=>{ const option=document.createElement('option'); option.value=opt; option.textContent=opt; input.appendChild(option);});
+} else { input=document.createElement('input'); input.type=campo.tipo==='texto'?'text':campo.tipo; input.name=campo.campo; }
+if(campo.requerido) input.required=true;
+formContainer.appendChild(label); formContainer.appendChild(input);
 }
 });
-
-// Checkbox de aceptación de términos
-const termLabel = document.createElement('label');
-const termInput = document.createElement('input');
-termInput.type = 'checkbox';
-termInput.id = 'aceptar';
-termInput.required = true;
-termLabel.appendChild(termInput);
-termLabel.appendChild(document.createTextNode(' Acepto los términos y condiciones'));
+const termLabel=document.createElement('label');
+const termInput=document.createElement('input'); termInput.type='checkbox'; termInput.id='aceptar'; termInput.required=true;
+termLabel.appendChild(termInput); termLabel.appendChild(document.createTextNode(' Acepto los términos y condiciones'));
 formContainer.appendChild(termLabel);
 }
 
-function comprar() {
-const form = document.getElementById('buyer-form');
-let faltan = [];
-formulario.forEach(campo => {
-  if(campo.campo === 'documento') return;
-  const input = form.querySelector(`[name="${campo.campo}"]`);
-  if(campo.requerido && (!input.value || (input.type==='number' && isNaN(input.value)))) faltan.push(campo.campo);
-});
+// Simulación de seleccionar asientos
+function seleccionarAsientos(index){
+const entrada = entradas[index];
+let cantidad=parseInt(document.querySelector(`#ticket-table input[data-index="${index}"]`).value)||0;
+if(cantidad<=0){ alert('Primero selecciona la cantidad de tickets'); return;}
+let seleccion=prompt(`Ingresa los números de asiento separados por coma para ${entrada.nombre} (Cantidad seleccionada: ${cantidad})`);
+if(seleccion){
+let lista=seleccion.split(',').map(x=>x.trim()).filter(x=>x);
+if(lista.length!==cantidad){ alert('Debes seleccionar exactamente la cantidad de asientos que pusiste'); return;}
+asientosSeleccionados[index]=lista;
+}
+}
 
-// Validar documento
-const tipoDoc = form.querySelector('[name="tipo_documento"]');
-const numDoc = form.querySelector('[name="num_documento"]');
+function comprar(){
+const form=document.getElementById('buyer-form');
+let faltan=[];
+formulario.forEach(c=>{
+if(c.campo==='documento') return;
+const input=form.querySelector(`[name="${c.campo}"]`);
+if(c.requerido && (!input.value || (input.type==='number' && isNaN(input.value)))) faltan.push(c.campo);
+});
+const tipoDoc=form.querySelector('[name="tipo_documento"]');
+const numDoc=form.querySelector('[name="num_documento"]');
 if(!tipoDoc.value) faltan.push('Tipo de Documento');
 if(!numDoc.value) faltan.push('Número de Documento');
-if(tipoDoc.value !== 'Pasaporte' && numDoc.value && !/^\d+$/.test(numDoc.value)) {
-  alert('Número de Documento debe ser numérico para Cédula o RUC.');
-  return;
-}
-
-if(faltan.length > 0) {
-  alert('Faltan campos requeridos: ' + faltan.join(', '));
-  return;
-}
-
-if(!document.getElementById('aceptar').checked) {
-  alert('Debes aceptar los términos y condiciones.');
-  return;
-}
-
-// Crear objeto comprador
-const comprador = {};
-formulario.forEach(campo => {
-  if(campo.campo==='documento'){
-    comprador['tipo_documento'] = tipoDoc.value;
-    comprador['num_documento'] = numDoc.value;
-  } else {
-    const input = form.querySelector(`[name="${campo.campo}"]`);
-    comprador[campo.campo] = input.value;
-  }
+if(tipoDoc.value!=='Pasaporte' && numDoc.value && !/^\d+$/.test(numDoc.value)){ alert('Número de Documento debe ser numérico para Cédula o RUC'); return;}
+if(faltan.length>0){ alert('Faltan campos requeridos: '+faltan.join(', ')); return;}
+if(!document.getElementById('aceptar').checked){ alert('Debes aceptar los términos y condiciones'); return;}
+const comprador={};
+formulario.forEach(c=>{
+if(c.campo==='documento'){ comprador['tipo_documento']=tipoDoc.value; comprador['num_documento']=numDoc.value; }
+else { comprador[c.campo]=form.querySelector(`[name="${c.campo}"]`).value; }
 });
 
-// Generar órdenes
-let ordenes = [];
-let ordenConsecutiva = 1;
+let ordenes=[]; let ordenConsecutiva=1;
 document.querySelectorAll('#ticket-table input[type="number"]').forEach(input=>{
-  const cantidad = parseInt(input.value)||0;
-  if(cantidad>0){
-    const entrada = entradas[input.dataset.index];
-    ordenes.push({
-      orden: ordenConsecutiva,
-      nombre_ticket: entrada.nombre,
-      cantidad: cantidad,
-      importe_total: +(cantidad*entrada.precio).toFixed(2),
-      comprador: comprador
-    });
-    ordenConsecutiva++;
-  }
+let cantidad=parseInt(input.value)||0;
+if(cantidad>0){
+const entrada=entradas[input.dataset.index];
+if(entrada.seats){
+if(!asientosSeleccionados[input.dataset.index] || asientosSeleccionados[input.dataset.index].length!==cantidad){
+alert(`Debes seleccionar exactamente ${cantidad} asientos para ${entrada.nombre}`);
+return;
+}}
+ordenes.push({
+orden:ordenConsecutiva,
+nombre_ticket:entrada.nombre,
+cantidad:cantidad,
+importe_total: +(cantidad*entrada.precio).toFixed(2),
+asientos: asientosSeleccionados[input.dataset.index]||[],
+comprador: comprador
+});
+ordenConsecutiva++;
+}
 });
 
-if(ordenes.length===0){
-  alert('No has seleccionado ninguna entrada.');
-  return;
-}
-
-// Descargar JSON de salida
-const blob = new Blob([JSON.stringify(ordenes,null,2)],{type:'application/json'});
-const link = document.createElement('a');
-link.href = URL.createObjectURL(blob);
-link.download = 'API_de_salida.json';
+if(ordenes.length===0){ alert('No has seleccionado ninguna entrada'); return;}
+const blob=new Blob([JSON.stringify(ordenes,null,2)],{type:'application/json'});
+const link=document.createElement('a');
+link.href=URL.createObjectURL(blob);
+link.download='API_de_salida.json';
 link.click();
-
 alert('Compra realizada con éxito. El resumen se ha guardado como API_de_salida.json.');
 }
 </script>

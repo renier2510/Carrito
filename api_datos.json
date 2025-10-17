@@ -1,9 +1,39 @@
 {
   "localidades": [
-    {"nombre": "Platea Baja", "precio": 51.5, "disponibilidad": "Disponible", "id_asiento": 1, "categoria_asiento": "Platea Baja"},
-    {"nombre": "VIP", "precio": 69, "disponibilidad": "Disponible", "id_asiento": 2, "categoria_asiento": "VIP"},
-    {"nombre": "General", "precio": 40, "disponibilidad": "No Disponible", "id_asiento": 3, "categoria_asiento": "General"},
-    {"nombre": "General | Tercera Edad", "precio": 20, "disponibilidad": "Disponible", "id_asiento": 3, "categoria_asiento": "General"}
+    {
+      "nombre": "GOLDEN",
+      "precio": 51.5,
+      "disponibilidad": "Disponible",
+      "id_asiento": 1,
+      "categoria_asiento": "GOLDEN",
+      "seats": true,
+      "url_seats": "https://app.seats.io/preview/eu/325020ac-637e-4ed7-ab01-9989ea127367/59c56fe5-6f57-52c0-ca74-95265dfed596"
+    },
+    {
+      "nombre": "VIP",
+      "precio": 69,
+      "disponibilidad": "Disponible",
+      "id_asiento": 2,
+      "categoria_asiento": "VIP",
+      "seats": true,
+      "url_seats": "https://app.seats.io/preview/eu/325020ac-637e-4ed7-ab01-9989ea127367/59c56fe5-6f57-52c0-ca74-95265dfed596"
+    },
+    {
+      "nombre": "GENERAL",
+      "precio": 40,
+      "disponibilidad": "No Disponible",
+      "id_asiento": 3,
+      "categoria_asiento": "General",
+      "seats": false
+    },
+    {
+      "nombre": "General | Tercera Edad",
+      "precio": 20,
+      "disponibilidad": "Disponible",
+      "id_asiento": 3,
+      "categoria_asiento": "General",
+      "seats": false
+    }
   ],
   "formulario": [
     {"campo": "nombre", "tipo": "texto", "requerido": true},
@@ -13,4 +43,3 @@
     {"campo": "telefono", "tipo": "number", "requerido": true}
   ]
 }
-
