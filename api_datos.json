@@ -1,11 +1,11 @@
 {
   "localidades": [
     {
-      "nombre": "GOLDEN",
+      "nombre": "Platea Baja",
       "precio": 51.5,
       "disponibilidad": "Disponible",
       "id_asiento": 1,
-      "categoria_asiento": "GOLDEN",
+      "categoria_asiento": "Platea Baja",
       "seats": true,
       "url_seats": "https://app.seats.io/preview/eu/325020ac-637e-4ed7-ab01-9989ea127367/59c56fe5-6f57-52c0-ca74-95265dfed596"
     },
@@ -19,7 +19,7 @@
       "url_seats": "https://app.seats.io/preview/eu/325020ac-637e-4ed7-ab01-9989ea127367/59c56fe5-6f57-52c0-ca74-95265dfed596"
     },
     {
-      "nombre": "GENERAL",
+      "nombre": "General",
       "precio": 40,
       "disponibilidad": "No Disponible",
       "id_asiento": 3,
