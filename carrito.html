@@ -108,7 +108,8 @@
     let formularioCampos = [];
     let asientosSeleccionados = {};
 
-    fetch("data.json")
+    // Carga el JSON de entrada
+    fetch("api_datos.json")
       .then(res => res.json())
       .then(data => {
         entradas = data.localidades;
@@ -118,7 +119,7 @@
       })
       .catch(err => {
         console.error("Error cargando datos de la API:", err);
-        alert("Error cargando datos de la API. Usa un servidor local o Live Server.");
+        alert("Error cargando datos de la API. Verifica api_datos.json en la misma carpeta.");
       });
 
     const tabla = document.getElementById("ticket-table");
@@ -172,7 +173,7 @@
       const url = `${entrada.url_seats}?categoria=${categoria}`;
       window.open(url, "MapaAsientos", "width=900,height=600");
 
-      // Simulación de selección
+      // Simulación de selección de asientos
       setTimeout(() => {
         const confirmar = confirm(`Simular selección de ${cantidad} asientos para ${entrada.nombre}?`);
         if (confirmar) {
