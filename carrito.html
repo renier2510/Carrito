@@ -106,9 +106,8 @@
   <script>
     let entradas = [];
     let formularioCampos = [];
-    let asientosSeleccionados = {}; // Guarda los asientos simulados por categoría
+    let asientosSeleccionados = {};
 
-    // Cargar el JSON externo
     fetch("data.json")
       .then(res => res.json())
       .then(data => {
@@ -119,14 +118,13 @@
       })
       .catch(err => {
         console.error("Error cargando datos de la API:", err);
-        alert("Error cargando datos de la API. Asegúrate de abrir desde un servidor o Live Server.");
+        alert("Error cargando datos de la API. Usa un servidor local o Live Server.");
       });
 
     const tabla = document.getElementById("ticket-table");
 
     function mostrarEntradas() {
       tabla.innerHTML = "";
-
       entradas.forEach((entrada, index) => {
         const fila = document.createElement("tr");
 
@@ -145,11 +143,10 @@
         inputCantidad.dataset.index = index;
         inputCantidad.dataset.nombre = entrada.nombre;
         inputCantidad.addEventListener("input", calcularTotales);
-
         tdCantidad.appendChild(inputCantidad);
 
         const tdBoton = document.createElement("td");
-        if (entrada.seats) {
+        if (entrada.seats && entrada.url_seats) {
           const btnAsientos = document.createElement("button");
           btnAsientos.textContent = "Seleccionar Asientos";
           btnAsientos.onclick = () => abrirMapaAsientos(entrada, inputCantidad);
@@ -164,33 +161,29 @@
       });
     }
 
-    // Abrir mapa de asientos
     function abrirMapaAsientos(entrada, inputCantidad) {
       const cantidad = parseInt(inputCantidad.value) || 0;
       if (cantidad <= 0) {
-        alert("Primero ingresa la cantidad de boletos que deseas para esta categoría.");
+        alert("Primero ingresa la cantidad de boletos que deseas.");
         return;
       }
 
       const categoria = encodeURIComponent(entrada.categoria_asiento);
       const url = `${entrada.url_seats}?categoria=${categoria}`;
-      const popup = window.open(url, "MapaAsientos", "width=800,height=600");
+      window.open(url, "MapaAsientos", "width=900,height=600");
 
-      // Simulamos selección de asientos
+      // Simulación de selección
       setTimeout(() => {
-        if (popup && !popup.closed) {
-          const confirmar = confirm(`¿Confirmar selección simulada de ${cantidad} asientos para ${entrada.nombre}?`);
-          if (confirmar) {
-            const seleccion = [];
-            for (let i = 1; i <= cantidad; i++) {
-              seleccion.push(`${entrada.categoria_asiento}-${i}`);
-            }
-            asientosSeleccionados[entrada.nombre] = seleccion;
-            alert(`Asientos seleccionados: ${seleccion.join(", ")}`);
-            popup.close();
+        const confirmar = confirm(`Simular selección de ${cantidad} asientos para ${entrada.nombre}?`);
+        if (confirmar) {
+          const seleccion = [];
+          for (let i = 1; i <= cantidad; i++) {
+            seleccion.push(`${entrada.categoria_asiento}-${i}`);
           }
+          asientosSeleccionados[entrada.nombre] = seleccion;
+          alert(`Asientos seleccionados: ${seleccion.join(", ")}`);
         }
-      }, 3000);
+      }, 1000);
     }
 
     function crearFormulario() {
@@ -209,7 +202,6 @@
             input.appendChild(option);
           });
 
-          // Agregar campo adicional para número de documento
           input.addEventListener("change", e => {
             const existe = document.getElementById("num-doc");
             if (!existe) {
@@ -226,6 +218,7 @@
               existe.type = e.target.value === "Pasaporte" ? "text" : "number";
             }
           });
+
         } else {
           input = document.createElement("input");
           input.type = campo.tipo;
@@ -243,7 +236,6 @@
     function calcularTotales() {
       let totalCantidad = 0;
       let totalPrecio = 0;
-
       const inputs = document.querySelectorAll("#ticket-table input[type='number']");
       inputs.forEach(input => {
         const cantidad = parseInt(input.value) || 0;
@@ -251,14 +243,13 @@
         totalCantidad += cantidad;
         totalPrecio += cantidad * precio;
       });
-
       document.getElementById("total-cant").textContent = totalCantidad;
       document.getElementById("total-precio").textContent = `$${totalPrecio.toFixed(2)}`;
     }
 
     function resetForm() {
       document.getElementById("buyer-form").reset();
-      document.querySelectorAll("#ticket-table input[type='number']").forEach(i => (i.value = 0));
+      document.querySelectorAll("#ticket-table input[type='number']").forEach(i => i.value = 0);
       calcularTotales();
       asientosSeleccionados = {};
     }
@@ -266,14 +257,14 @@
     function comprar() {
       const form = document.getElementById("buyer-form");
       if (!form.checkValidity()) {
-        alert("Por favor completa todos los campos requeridos antes de continuar.");
+        alert("Por favor completa todos los campos requeridos.");
         return;
       }
 
       let ordenes = [];
       let numOrden = 1;
       const inputs = document.querySelectorAll("#ticket-table input[type='number']");
-      inputs.forEach(input => {
+      for (const input of inputs) {
         const cantidad = parseInt(input.value) || 0;
         if (cantidad > 0) {
           const entrada = entradas[input.dataset.index];
@@ -291,17 +282,15 @@
             asientos
           });
         }
-      });
+      }
 
       const datosComprador = {};
       formularioCampos.forEach(c => {
-        const valor = document.getElementById(c.campo)?.value || "";
-        datosComprador[c.campo] = valor;
+        datosComprador[c.campo] = document.getElementById(c.campo)?.value || "";
       });
       datosComprador["num-doc"] = document.getElementById("num-doc")?.value || "";
 
       const apiSalida = { comprador: datosComprador, ordenes };
-
       const blob = new Blob([JSON.stringify(apiSalida, null, 2)], { type: "application/json" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
