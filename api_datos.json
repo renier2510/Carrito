@@ -1,0 +1,16 @@
+{
+  "localidades": [
+    {"nombre": "Platea Baja", "precio": 51.5, "disponibilidad": "Disponible", "id_asiento": 1, "categoria_asiento": "Platea Baja"},
+    {"nombre": "VIP", "precio": 69, "disponibilidad": "Disponible", "id_asiento": 2, "categoria_asiento": "VIP"},
+    {"nombre": "General", "precio": 40, "disponibilidad": "No Disponible", "id_asiento": 3, "categoria_asiento": "General"},
+    {"nombre": "General | Tercera Edad", "precio": 20, "disponibilidad": "Disponible", "id_asiento": 3, "categoria_asiento": "General"}
+  ],
+  "formulario": [
+    {"campo": "nombre", "tipo": "texto", "requerido": true},
+    {"campo": "apellido", "tipo": "texto", "requerido": true},
+    {"campo": "correo", "tipo": "email", "requerido": true},
+    {"campo": "documento", "tipo": "select", "opciones": ["Cédula","RUC","Pasaporte"], "requerido": true},
+    {"campo": "telefono", "tipo": "number", "requerido": true}
+  ]
+}
+

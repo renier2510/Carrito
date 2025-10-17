@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrito de Entradas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      display: flex;
+      justify-content: space-between;
+    }
+    table { border-collapse: collapse; width: 60%; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background-color: #f4f4f4; }
+    input[type="number"] { width: 60px; }
+    .totals { margin-top: 20px; font-size: 1.1em; }
+    .form-container { width: 35%; padding-left: 20px; border-left: 2px solid #eee; }
+    .form-container label { display: block; margin-top: 10px; }
+    .form-container input, .form-container select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+    .buttons { margin-top: 20px; }
+    button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
+    .totals span { display: inline-block; width: 150px; }
+  </style>
+</head>
+<body>
+
+  <div>
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo de Entrada</th>
+          <th>Precio</th>
+          <th>Cantidad</th>
+        </tr>
+      </thead>
+      <tbody id="ticket-table"></tbody>
+    </table>
+
+    <div class="totals">
+      <p><span>Total de Entradas:</span><strong id="total-cant">0</strong></p>
+      <p><span>Total a Cobrar:</span><strong id="total-precio">$0.00</strong></p>
+    </div>
+
+    <div class="buttons">
+      <button onclick="resetForm()">Limpiar</button>
+      <button onclick="comprar()">Comprar</button>
+    </div>
+  </div>
+
+  <div class="form-container">
+    <h3>Datos del Comprador</h3>
+    <form id="buyer-form"></form>
+  </div>
+
+  <script>
+    let entradas = [];
+
+    async function cargarAPI() {
+      try {
+        const response = await fetch('api_datos.json');
+        const data = await response.json();
+
+        entradas = data.localidades;
+        generarTabla();
+        generarFormulario(data.formulario);
+      } catch (error) {
+        alert("Error cargando datos de la API. Asegúrate de abrir desde un servidor o Live Server.");
+        console.error(error);
+      }
+    }
+
+    function generarTabla() {
+      const tabla = document.getElementById('ticket-table');
+      tabla.innerHTML = '';
+      entradas.forEach((entrada, index) => {
+        const fila = document.createElement('tr');
+
+        const tdNombre = document.createElement('td');
+        tdNombre.textContent = entrada.nombre;
+
+        const tdPrecio = document.createElement('td');
+        tdPrecio.textContent = `$${entrada.precio.toFixed(2)}`;
+
+        const tdCantidad = document.createElement('td');
+        const inputCantidad = document.createElement('input');
+        inputCantidad.type = 'number';
+        inputCantidad.min = 0;
+        inputCantidad.max = entrada.disponibilidad === "Disponible" ? 1000 : 0;
+        inputCantidad.value = 0;
+        inputCantidad.dataset.precio = entrada.precio;
+        inputCantidad.dataset.index = index;
+        inputCantidad.addEventListener('input', calcularTotales);
+
+        tdCantidad.appendChild(inputCantidad);
+        fila.appendChild(tdNombre);
+        fila.appendChild(tdPrecio);
+        fila.appendChild(tdCantidad);
+
+        tabla.appendChild(fila);
+      });
+    }
+
+    function generarFormulario(campos) {
+      const contenedor = document.getElementById('buyer-form');
+      contenedor.innerHTML = '';
+      campos.forEach(c => {
+        const label = document.createElement('label');
+        label.textContent = c.campo.charAt(0).toUpperCase() + c.campo.slice(1) + ":";
+        let input;
+        if (c.tipo === "select") {
+          input = document.createElement("select");
+          c.opciones.forEach(op => {
+            const option = document.createElement("option");
+            option.value = op;
+            option.textContent = op;
+            input.appendChild(option);
+          });
+        } else {
+          input = document.createElement("input");
+          input.type = c.tipo;
+        }
+        input.name = c.campo;
+        if(c.requerido) input.required = true;
+        contenedor.appendChild(label);
+        contenedor.appendChild(input);
+      });
+
+      // Checkbox de términos
+      const labelTerminos = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'aceptar';
+      checkbox.required = true;
+      labelTerminos.appendChild(checkbox);
+      labelTerminos.appendChild(document.createTextNode(' Acepto los términos y condiciones'));
+      contenedor.appendChild(labelTerminos);
+    }
+
+    function calcularTotales() {
+      let totalCantidad = 0;
+      let totalPrecio = 0;
+      const inputs = document.querySelectorAll('#ticket-table input[type="number"]');
+      inputs.forEach(input => {
+        const cantidad = parseInt(input.value) || 0;
+        const precio = parseFloat(input.dataset.precio);
+        totalCantidad += cantidad;
+        totalPrecio += cantidad * precio;
+      });
+      document.getElementById('total-cant').textContent = totalCantidad;
+      document.getElementById('total-precio').textContent = `$${totalPrecio.toFixed(2)}`;
+    }
+
+    function resetForm() {
+      const inputs = document.querySelectorAll('#ticket-table input[type="number"]');
+      inputs.forEach(input => input.value = 0);
+      calcularTotales();
+      document.getElementById('buyer-form').reset();
+    }
+
+    function comprar() {
+      if (!document.getElementById('aceptar').checked) {
+        alert('Debes aceptar los términos y condiciones.');
+        return;
+      }
+
+      let resumenCompra = 'Resumen de la compra:\n';
+      const inputs = document.querySelectorAll('#ticket-table input[type="number"]');
+      inputs.forEach(input => {
+        const cantidad = parseInt(input.value) || 0;
+        if(cantidad > 0) {
+          const entrada = entradas[input.dataset.index];
+          resumenCompra += `\nOrden: ${entrada.nombre}\nCantidad: ${cantidad}\nImporte total: $${(cantidad*entrada.precio).toFixed(2)}\nAsientos: (vacío por ahora)\n`;
+        }
+      });
+
+      const blob = new Blob([resumenCompra], {type: 'text/plain'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'API_de_salida.txt';
+      link.click();
+      alert('Compra realizada con éxito. El resumen se ha guardado.');
+    }
+
+    cargarAPI();
+  </script>
+
+</body>
+</html>
