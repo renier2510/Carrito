@@ -55,7 +55,7 @@ let entradas = [];
 let formularioCampos = [];
 let asientosSeleccionados = {};
 
-fetch("api_datos.json")  // o reemplaza con URL raw de GitHub
+fetch("api_datos.json")
   .then(res => res.json())
   .then(data => {
     entradas = data.localidades;
@@ -118,7 +118,6 @@ function abrirMapaAsientos(entrada, inputCantidad) {
   const url = `${entrada.url_seats}?categoria=${categoria}`;
   window.open(url, "MapaAsientos", "width=900,height=600");
 
-  // Simulación de selección de asientos
   setTimeout(() => {
     const confirmar = confirm(`Simular selección de ${cantidad} asientos para ${entrada.nombre}?`);
     if (confirmar) {
@@ -134,6 +133,7 @@ function abrirMapaAsientos(entrada, inputCantidad) {
 
 function crearFormulario() {
   const form = document.getElementById("buyer-form");
+
   formularioCampos.forEach(campo => {
     const label = document.createElement("label");
     label.textContent = campo.campo.charAt(0).toUpperCase() + campo.campo.slice(1) + ":";
@@ -147,22 +147,6 @@ function crearFormulario() {
         option.textContent = op;
         input.appendChild(option);
       });
-
-      input.addEventListener("change", e => {
-        let inputNum = document.getElementById("num-doc");
-        if (!inputNum) {
-          const labelNum = document.createElement("label");
-          labelNum.textContent = "Número de Documento:";
-          inputNum = document.createElement("input");
-          inputNum.id = "num-doc";
-          inputNum.name = "num-doc";
-          inputNum.required = campo.requerido;
-          form.appendChild(labelNum);
-          form.appendChild(inputNum);
-        }
-        inputNum.type = e.target.value === "Pasaporte" ? "text" : "number";
-      });
-
     } else {
       input = document.createElement("input");
       input.type = campo.tipo;
@@ -171,8 +155,25 @@ function crearFormulario() {
     input.id = campo.campo;
     input.name = campo.campo;
     if (campo.requerido) input.required = true;
+
     form.appendChild(label);
     form.appendChild(input);
+
+    // Si es select de tipo documento, agregamos campo número siempre visible
+    if (campo.campo.toLowerCase() === "documento") {
+      const labelNum = document.createElement("label");
+      labelNum.textContent = "Número de Documento:";
+      const inputNum = document.createElement("input");
+      inputNum.id = "num-doc";
+      inputNum.name = "num-doc";
+      inputNum.required = campo.requerido;
+      inputNum.type = "number"; // por defecto
+      input.addEventListener("change", e => {
+        inputNum.type = e.target.value === "Pasaporte" ? "text" : "number";
+      });
+      form.appendChild(labelNum);
+      form.appendChild(inputNum);
+    }
   });
 
   // Checkbox de Términos y Condiciones
