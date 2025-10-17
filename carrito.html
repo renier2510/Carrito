@@ -47,7 +47,7 @@
 <div class="form-container">
   <h3>Datos del Comprador</h3>
   <form id="buyer-form">
-    <!-- Campos del formulario se generarán dinámicamente -->
+    <!-- Campos se generarán dinámicamente -->
   </form>
 </div>
 
@@ -161,20 +161,38 @@
   function comprar() {
     const form = document.getElementById('buyer-form');
 
-    if (!form.checkValidity()) {
-      alert('Por favor completa todos los campos requeridos.');
+    // Validar campos requeridos según JSON
+    let faltan = [];
+    formulario.forEach(campo => {
+      const input = form.querySelector(`[name="${campo.campo}"]`);
+      if(campo.requerido) {
+        if(!input.value || (input.type === 'number' && isNaN(input.value))) {
+          faltan.push(campo.campo);
+        }
+      }
+    });
+
+    if(faltan.length > 0) {
+      alert('Faltan campos requeridos: ' + faltan.join(', '));
+      return; // Bloquea la compra
+    }
+
+    // Validar aceptación de términos
+    if (!document.getElementById('aceptar').checked) {
+      alert('Debes aceptar los términos y condiciones.');
       return;
     }
 
+    // Crear objeto comprador con todos los datos
     const comprador = {};
     formulario.forEach(campo => {
       const input = form.querySelector(`[name="${campo.campo}"]`);
       comprador[campo.campo] = input.value;
     });
 
+    // Generar ordenes
     let ordenes = [];
     let ordenConsecutiva = 1;
-
     document.querySelectorAll('#ticket-table input[type="number"]').forEach(input => {
       const cantidad = parseInt(input.value) || 0;
       if (cantidad > 0) {
@@ -195,6 +213,7 @@
       return;
     }
 
+    // Descargar JSON de salida
     const blob = new Blob([JSON.stringify(ordenes, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
