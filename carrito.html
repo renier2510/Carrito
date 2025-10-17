@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Carrito de Entradas</title>
 <style>
 body { font-family: Arial, sans-serif; margin: 40px; display: flex; justify-content: space-between; }
@@ -22,6 +22,7 @@ button { padding: 8px 16px; font-size: 0.9em; cursor: pointer; margin-left: 5px;
 <body>
 
 <div>
+  <input type="file" id="cargar-json" accept=".json" />
   <table>
     <thead>
       <tr>
@@ -55,21 +56,45 @@ let entradas = [];
 let formularioCampos = [];
 let asientosSeleccionados = {};
 
-fetch("api_datos.json")
-  .then(res => res.json())
-  .then(data => {
-    entradas = data.localidades;
-    formularioCampos = data.formulario;
-    mostrarEntradas();
-    crearFormulario();
-  })
-  .catch(err => {
-    console.error("Error cargando datos de la API:", err);
-    alert("Error cargando datos de la API. Verifica api_datos.json en la misma carpeta.");
-  });
+// Función para cargar JSON desde URL (GitHub) o desde archivo local
+function cargarJSON(url) {
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      cargarDatos(data);
+    })
+    .catch(err => {
+      console.error("Error cargando datos de la API:", err);
+      alert("Error cargando datos desde GitHub.");
+    });
+}
 
+// Función para cargar JSON local
+document.getElementById("cargar-json").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = JSON.parse(evt.target.result);
+      cargarDatos(data);
+    } catch(err) {
+      alert("El archivo seleccionado no es un JSON válido.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+function cargarDatos(data) {
+  entradas = data.localidades;
+  formularioCampos = data.formulario;
+  asientosSeleccionados = {};
+  mostrarEntradas();
+  crearFormulario();
+}
+
+// Mostrar entradas en tabla
 const tabla = document.getElementById("ticket-table");
-
 function mostrarEntradas() {
   tabla.innerHTML = "";
   entradas.forEach((entrada, index) => {
@@ -108,37 +133,31 @@ function mostrarEntradas() {
   });
 }
 
+// Abrir mapa y simular selección al cerrar
 function abrirMapaAsientos(entrada, inputCantidad) {
   const cantidad = parseInt(inputCantidad.value) || 0;
-  if (cantidad <= 0) {
-    alert("Primero ingresa la cantidad de boletos que deseas.");
-    return;
-  }
+  if (cantidad <= 0) { alert("Primero ingresa la cantidad de boletos."); return; }
   const categoria = encodeURIComponent(entrada.categoria_asiento);
   const url = `${entrada.url_seats}?categoria=${categoria}`;
   const mapaVentana = window.open(url, "MapaAsientos", "width=900,height=600");
-
   const intervalId = setInterval(() => {
     if (mapaVentana.closed) {
       clearInterval(intervalId);
-      // Simulación automática de asientos
       const seleccion = [];
-      for (let i = 1; i <= cantidad; i++) {
-        seleccion.push(`${entrada.categoria_asiento}-Asiento ${i}`);
-      }
+      for (let i=1; i<=cantidad; i++) seleccion.push(`${entrada.categoria_asiento}-Asiento ${i}`);
       asientosSeleccionados[entrada.nombre] = seleccion;
       alert(`Asientos seleccionados automáticamente: ${seleccion.join(", ")}`);
     }
   }, 500);
 }
 
+// Crear formulario dinámico
 function crearFormulario() {
   const form = document.getElementById("buyer-form");
-
+  form.innerHTML = ""; // limpiar
   formularioCampos.forEach(campo => {
     const label = document.createElement("label");
     label.textContent = campo.campo.charAt(0).toUpperCase() + campo.campo.slice(1) + ":";
-
     let input;
     if (campo.tipo === "select") {
       input = document.createElement("select");
@@ -152,15 +171,13 @@ function crearFormulario() {
       input = document.createElement("input");
       input.type = campo.tipo;
     }
-
     input.id = campo.campo;
     input.name = campo.campo;
     if (campo.requerido) input.required = true;
-
     form.appendChild(label);
     form.appendChild(input);
 
-    // Si es select de tipo documento, agregamos campo número siempre visible
+    // Número de documento
     if (campo.campo.toLowerCase() === "documento") {
       const labelNum = document.createElement("label");
       labelNum.textContent = "Número de Documento:";
@@ -168,7 +185,7 @@ function crearFormulario() {
       inputNum.id = "num-doc";
       inputNum.name = "num-doc";
       inputNum.required = campo.requerido;
-      inputNum.type = "number"; // por defecto
+      inputNum.type = "number";
       input.addEventListener("change", e => {
         inputNum.type = e.target.value === "Pasaporte" ? "text" : "number";
       });
@@ -177,7 +194,7 @@ function crearFormulario() {
     }
   });
 
-  // Checkbox de Términos y Condiciones
+  // Checkbox términos
   const labelCheck = document.createElement("label");
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -188,15 +205,13 @@ function crearFormulario() {
   form.appendChild(labelCheck);
 }
 
+// Totales
 function calcularTotales() {
-  let totalCantidad = 0;
-  let totalPrecio = 0;
-  const inputs = document.querySelectorAll("#ticket-table input[type='number']");
-  inputs.forEach(input => {
-    const cantidad = parseInt(input.value) || 0;
-    const precio = parseFloat(input.dataset.precio);
-    totalCantidad += cantidad;
-    totalPrecio += cantidad * precio;
+  let totalCantidad=0, totalPrecio=0;
+  document.querySelectorAll("#ticket-table input[type='number']").forEach(input=>{
+    const cantidad=parseInt(input.value)||0;
+    totalCantidad+=cantidad;
+    totalPrecio+=cantidad*parseFloat(input.dataset.precio);
   });
   document.getElementById("total-cant").textContent = totalCantidad;
   document.getElementById("total-precio").textContent = `$${totalPrecio.toFixed(2)}`;
@@ -204,56 +219,46 @@ function calcularTotales() {
 
 function resetForm() {
   document.getElementById("buyer-form").reset();
-  document.querySelectorAll("#ticket-table input[type='number']").forEach(i => i.value = 0);
+  document.querySelectorAll("#ticket-table input[type='number']").forEach(i=>i.value=0);
   calcularTotales();
-  asientosSeleccionados = {};
+  asientosSeleccionados={};
 }
 
 function comprar() {
   const form = document.getElementById("buyer-form");
-  if (!form.checkValidity()) {
-    alert("Por favor completa todos los campos requeridos y acepta los términos.");
-    return;
-  }
+  if (!form.checkValidity()) { alert("Completa todos los campos requeridos y acepta los términos."); return; }
 
   let ordenes = [];
   let numOrden = 1;
-  const inputs = document.querySelectorAll("#ticket-table input[type='number']");
-  for (const input of inputs) {
-    const cantidad = parseInt(input.value) || 0;
-    if (cantidad > 0) {
+  document.querySelectorAll("#ticket-table input[type='number']").forEach(input=>{
+    const cantidad = parseInt(input.value)||0;
+    if(cantidad>0){
       const entrada = entradas[input.dataset.index];
       const asientos = asientosSeleccionados[entrada.nombre] || [];
-      if (entrada.seats && asientos.length !== cantidad) {
+      if(entrada.seats && asientos.length!==cantidad){
         alert(`Debes seleccionar exactamente ${cantidad} asientos para ${entrada.nombre}.`);
         return;
       }
-      ordenes.push({
-        orden: numOrden++,
-        nombre_ticket: entrada.nombre,
-        cantidad,
-        total: cantidad * entrada.precio,
-        asientos
-      });
+      ordenes.push({orden:numOrden++, nombre_ticket:entrada.nombre, cantidad, total:cantidad*entrada.precio, asientos});
     }
-  }
-
-  const datosComprador = {};
-  formularioCampos.forEach(c => {
-    datosComprador[c.campo] = document.getElementById(c.campo)?.value || "";
   });
-  datosComprador["num-doc"] = document.getElementById("num-doc")?.value || "";
-  datosComprador["acepta_terminos"] = document.getElementById("aceptar").checked;
 
-  const apiSalida = { comprador: datosComprador, ordenes };
-  const blob = new Blob([JSON.stringify(apiSalida, null, 2)], { type: "application/json" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "api_salida.json";
+  const datosComprador={};
+  formularioCampos.forEach(c=>datosComprador[c.campo]=document.getElementById(c.campo)?.value||"");
+  datosComprador["num-doc"]=document.getElementById("num-doc")?.value||"";
+  datosComprador["acepta_terminos"]=document.getElementById("aceptar").checked;
+
+  const apiSalida={comprador:datosComprador, ordenes};
+  const blob = new Blob([JSON.stringify(apiSalida,null,2)],{type:"application/json"});
+  const link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.download="api_salida.json";
   link.click();
-
-  alert("Compra realizada con éxito. Archivo de salida generado.");
+  alert("Compra realizada. Archivo de salida generado.");
 }
+
+// Cargar JSON inicial desde GitHub
+cargarJSON("https://renier2510.github.io/Carrito/api_datos.json");
 </script>
 
 </body>
