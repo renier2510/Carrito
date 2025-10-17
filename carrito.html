@@ -11,17 +11,63 @@
       display: flex;
       justify-content: space-between;
     }
-    table { border-collapse: collapse; width: 60%; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    th { background-color: #f4f4f4; }
-    input[type="number"] { width: 60px; }
-    .totals { margin-top: 20px; font-size: 1.1em; }
-    .form-container { width: 35%; padding-left: 20px; border-left: 2px solid #eee; }
-    .form-container label { display: block; margin-top: 10px; }
-    .form-container input, .form-container select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
-    .buttons { margin-top: 20px; }
-    button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
-    .totals span { display: inline-block; width: 150px; }
+
+    table {
+      border-collapse: collapse;
+      width: 60%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+    }
+
+    input[type="number"] {
+      width: 60px;
+    }
+
+    .totals {
+      margin-top: 20px;
+      font-size: 1.1em;
+    }
+
+    .form-container {
+      width: 35%;
+      padding-left: 20px;
+      border-left: 2px solid #eee;
+    }
+
+    .form-container label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    .form-container input, .form-container select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+
+    .buttons {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    .totals span {
+      display: inline-block;
+      width: 150px;
+    }
   </style>
 </head>
 <body>
@@ -35,7 +81,9 @@
           <th>Cantidad</th>
         </tr>
       </thead>
-      <tbody id="ticket-table"></tbody>
+      <tbody id="ticket-table">
+        <!-- Filas generadas por JavaScript -->
+      </tbody>
     </table>
 
     <div class="totals">
@@ -51,29 +99,51 @@
 
   <div class="form-container">
     <h3>Datos del Comprador</h3>
-    <form id="buyer-form"></form>
+    <form id="buyer-form">
+      <label for="nombre">Nombre y Apellido:</label>
+      <input type="text" id="nombre" name="nombre" required>
+
+      <label for="correo">Correo:</label>
+      <input type="email" id="correo" name="correo" required>
+
+      <label for="tipo-doc">Tipo de Documento:</label>
+      <select id="tipo-doc" name="tipo-doc" required>
+        <option value="cedula" selected>Cédula</option>
+        <option value="ruc">RUC</option>
+        <option value="pasaporte">Pasaporte</option>
+      </select>
+
+      <label for="num-doc">Número de Documento:</label>
+      <input type="text" id="num-doc" name="num-doc" required>
+
+      <label for="telefono">Teléfono:</label>
+      <input type="tel" id="telefono" name="telefono">
+
+      <label>
+        <input type="checkbox" id="aceptar" required> Acepto los términos y condiciones
+      </label>
+    </form>
   </div>
 
   <script>
-    let entradas = [];
+    // Cargar datos desde JSON externo (API simulada)
+    fetch('api_datos.json')
+      .then(response => response.json())
+      .then(data => {
+        window.entradas = data.localidades; // guardar entradas globalmente
+        mostrarEntradas();
+      })
+      .catch(error => {
+        console.error('Error cargando datos de la API:', error);
+        alert('Error cargando datos de la API. Asegúrate de abrir desde un servidor o Live Server.');
+      });
 
-    async function cargarAPI() {
-      try {
-        const response = await fetch('api_datos.json');
-        const data = await response.json();
+    const tabla = document.getElementById('ticket-table');
 
-        entradas = data.localidades;
-        generarTabla();
-        generarFormulario(data.formulario);
-      } catch (error) {
-        alert("Error cargando datos de la API. Asegúrate de abrir desde un servidor o Live Server.");
-        console.error(error);
-      }
-    }
-
-    function generarTabla() {
-      const tabla = document.getElementById('ticket-table');
+    // Mostrar entradas
+    function mostrarEntradas() {
       tabla.innerHTML = '';
+
       entradas.forEach((entrada, index) => {
         const fila = document.createElement('tr');
 
@@ -87,13 +157,14 @@
         const inputCantidad = document.createElement('input');
         inputCantidad.type = 'number';
         inputCantidad.min = 0;
-        inputCantidad.max = entrada.disponibilidad === "Disponible" ? 1000 : 0;
+        inputCantidad.max = entrada.disponibilidad === "Disponible" ? 1000 : 0; // bloquea si no disponible
         inputCantidad.value = 0;
         inputCantidad.dataset.precio = entrada.precio;
         inputCantidad.dataset.index = index;
         inputCantidad.addEventListener('input', calcularTotales);
 
         tdCantidad.appendChild(inputCantidad);
+
         fila.appendChild(tdNombre);
         fila.appendChild(tdPrecio);
         fila.appendChild(tdCantidad);
@@ -102,45 +173,11 @@
       });
     }
 
-    function generarFormulario(campos) {
-      const contenedor = document.getElementById('buyer-form');
-      contenedor.innerHTML = '';
-      campos.forEach(c => {
-        const label = document.createElement('label');
-        label.textContent = c.campo.charAt(0).toUpperCase() + c.campo.slice(1) + ":";
-        let input;
-        if (c.tipo === "select") {
-          input = document.createElement("select");
-          c.opciones.forEach(op => {
-            const option = document.createElement("option");
-            option.value = op;
-            option.textContent = op;
-            input.appendChild(option);
-          });
-        } else {
-          input = document.createElement("input");
-          input.type = c.tipo;
-        }
-        input.name = c.campo;
-        if(c.requerido) input.required = true;
-        contenedor.appendChild(label);
-        contenedor.appendChild(input);
-      });
-
-      // Checkbox de términos
-      const labelTerminos = document.createElement('label');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.id = 'aceptar';
-      checkbox.required = true;
-      labelTerminos.appendChild(checkbox);
-      labelTerminos.appendChild(document.createTextNode(' Acepto los términos y condiciones'));
-      contenedor.appendChild(labelTerminos);
-    }
-
+    // Calcular totales
     function calcularTotales() {
       let totalCantidad = 0;
       let totalPrecio = 0;
+
       const inputs = document.querySelectorAll('#ticket-table input[type="number"]');
       inputs.forEach(input => {
         const cantidad = parseInt(input.value) || 0;
@@ -148,10 +185,12 @@
         totalCantidad += cantidad;
         totalPrecio += cantidad * precio;
       });
+
       document.getElementById('total-cant').textContent = totalCantidad;
       document.getElementById('total-precio').textContent = `$${totalPrecio.toFixed(2)}`;
     }
 
+    // Limpiar formulario
     function resetForm() {
       const inputs = document.querySelectorAll('#ticket-table input[type="number"]');
       inputs.forEach(input => input.value = 0);
@@ -159,31 +198,45 @@
       document.getElementById('buyer-form').reset();
     }
 
+    // Comprar y generar JSON de salida con órdenes consecutivas
     function comprar() {
       if (!document.getElementById('aceptar').checked) {
         alert('Debes aceptar los términos y condiciones.');
         return;
       }
 
-      let resumenCompra = 'Resumen de la compra:\n';
+      let ordenes = [];
+      let ordenConsecutiva = 1;
+
       const inputs = document.querySelectorAll('#ticket-table input[type="number"]');
-      inputs.forEach(input => {
+      inputs.forEach((input) => {
         const cantidad = parseInt(input.value) || 0;
-        if(cantidad > 0) {
+        if (cantidad > 0) {
           const entrada = entradas[input.dataset.index];
-          resumenCompra += `\nOrden: ${entrada.nombre}\nCantidad: ${cantidad}\nImporte total: $${(cantidad*entrada.precio).toFixed(2)}\nAsientos: (vacío por ahora)\n`;
+          ordenes.push({
+            orden: ordenConsecutiva,
+            nombre_ticket: entrada.nombre,
+            cantidad: cantidad,
+            importe_total: +(cantidad * entrada.precio).toFixed(2)
+          });
+          ordenConsecutiva++;
         }
       });
 
-      const blob = new Blob([resumenCompra], {type: 'text/plain'});
+      if (ordenes.length === 0) {
+        alert('No has seleccionado ninguna entrada.');
+        return;
+      }
+
+      // Crear archivo JSON de salida
+      const blob = new Blob([JSON.stringify(ordenes, null, 2)], { type: 'application/json' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'API_de_salida.txt';
+      link.download = 'API_de_salida.json';
       link.click();
-      alert('Compra realizada con éxito. El resumen se ha guardado.');
-    }
 
-    cargarAPI();
+      alert('Compra realizada con éxito. El resumen se ha guardado como API_de_salida.json.');
+    }
   </script>
 
 </body>
